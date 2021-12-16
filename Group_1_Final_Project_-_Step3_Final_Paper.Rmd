@@ -1,0 +1,197 @@
+---
+title: "Forecasting the Gross Domestic Product Per capita of Ireland"
+author: "Group 1: Jennifer Grosz, Sohrab Rajabi, Josh Wolfe, Jordan Gropper"
+date: "12/28/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+Gross Domestic Product (GDP) is a comprehensive measure of economic activity and is the ultimate economic value of final goods and services produced. GDP is considered to be a key factor when determining a nation's overall economic health. There are many articles and papers can be found on estimation of GDP, of which one of the most fundamental papers is written by Kuznets, covering GDP and its composition[1]. The operational definition of GDP Per Capita is the economic contribution of any given individual residing in the nation. It is also a well known and established indicator of social welfare[2]. Forecasting GDP affords policy makers and economic stake holders the ability to make data driven decisions that rely on and/or influence the economy. The importance of GDP Per Capita forecasting also leads many scientists to work on the subject[3] with different tools such as Artificial Neural Networks[4].
+
+In this study we have examined the GDP Per Capita for five different leading countries and found there is a rapid growth in Ireland's GDP Per Capita compared to other leading countries. We found that Ireland's growth after the early 2000s is very robust, outpacing the large industrial powers of the world. Ireland's growth rate was an unexpected finding and encouraged us to perform more analysis. In this analysis we take a look at the behavior of Ireland's GDP Per Capita tend by using a Time Series Analysis to observe the pattern of economic growth and attempt to determine if this growth is sustainable using forecasting models. The aim of this paper is to answer the following question: Can Ireland continue rapid economic growth coming out of the COVID-19 pandemic?
+
+## Data Description
+
+The data used for this analysis comes from the Organization For Economic Development (https://stats.oecd.org/index.aspx?queryid=66948#). 
+  
+The data is a quarterly data set that tracks economic growth using various GDP calculations from 1990 through 2020 of all nations. After cleaning the data, the first five country with the highest GDP Per Capita were selected. By comparing the behavior of plots we have chosen to observe Ireland due to the rapid GDP Per Capita growth that is not found in other leading nations. We are using data from 1995 to 2020 in this analysis.
+  
+## Plot of the Data
+
+The data set contains many nations with full data available from 1995 onward.
+
+![](../figures/top_5_full.png){width=450px}
+
+# Methods
+
+## Narrowing Down the Data
+
+When Ireland is included with leading nations it is clear that there is a period of rapid growth beginning around the 2014 mark. Because this growth is not reflected in other leading nations we have decided to focus on Ireland and to attempt to forecast this growth beyond the COVID-19 pandemic.
+
+![](../figures/plotted_tsdata.png){width=450px}
+
+As seen in the plot above, this time series has an upward trend over time. To address this trend and achieve stationarity in the time series for our analysis, we have performed a log-difference transformation of the data. This transformation ensures the time series properties do not vary over time and satisfies the assumption of stationarity required for forecasting time series data. Below you will find a plot of the stationary, log-difference transformed data set which will be used for our forecasting models. This also allows us to focus on not only the difference in value over time as the first plot portrays, but to dial in on the actual growth over time.
+
+There is a particularly high growth rate seen in 2015. One reason behind this spike could be the fact that Ireland passed new tax relief laws in 2015[5]. These new tax policies established low corporation tax rates which led to a rush of multinational corporations transferring intellectual property assets to Ireland. This rush of economic activity has seemingly distorted the country’s official statistics since the country has reported an annual increase in GDP of 26 percent for 2015. This increase is likely attributable to the number of large multinational corporations to relocating their economic activities, specifically their underlying intellectual property, to Ireland[6]. However more work needs to be done to determine causation and is beyond the scope of this paper.
+
+
+## Log Difference Transformed ACF and PACF:
+
+![](../figures/adjusted_acf.png){width=400px}
+
+![](../figures/adjusted_pacf.png){width=400px}
+
+## Model Selection:
+
+The ACF and PACF plots produced by the transformed time series data led us to believe that a mixture of first or second order would be appropriate for our models. The ACF graph has a more gradual decrease in significance over lags than the PACF. The lag significance seen in the PACF drops after the first lag, while the ACF's lag significance drops off after the second lag. This indicates to us that we should be working with a first or second order process for our models. The ACF and PACF plots also indicate that an auto regression (AR) model might be appropriate. However, considering the relative similarity between where the lag drops below significance in the ACF and PACF plots we also wanted to investigate the possible models of AR, moving average (MA) and blended ARMA models in combinations of first and second orders.
+
+The models we investigated include:
+
+  - Simple: Linear OLS Model, Fixed Scheme, Recursive Scheme, Rolling Scheme, Average IV
+
+  - Complex: AR(1), AR(2), MA(1), MA(2), ARMA(1, 1), ARMA(2, 2), ARMA(1, 2), ARMA(2, 1)
+  
+## Model Validation 
+
+To validate the constructed models while we will compare the following performance metrics:
+
+  - AIC: Akaike Information Criterion (AIC) is an estimator of prediction error and thereby relative quality of statistical models for a given set of data. AIC can be termed as a measure of the goodness of fit of any estimated statistical model[7].
+  
+  - BIC: Bayesian Information Criterion (BIC) is an estimator similar to AIC based, in part, on the likelihood function. When comparing BIC and AIC, BIC's penalty for additional parameters is more than AIC's where BIC penalizes free parameters more strongly[7].
+
+
+![](../figures/Information_Criteria_Table.png){width=250px}
+
+Based on the Information Criteria results displayed in the table above we have chosen ARMA(2,1), MA(2) and AR(1) models for further validation. Our justification for this selection is based on the fact that these models that returned the best (lowest) AIC or BIC. The ARMA(2,1) model had the best AIC, followed closely by MA(2). When looking at BIC, the AR(1) model had the best value and was again closely followed by the MA(2) model. While all models seem to be close in fit quality (residuals), we elected to choose the top 3 models for further validation based on their satisfaction for one of the performance metric criteria previously specified. 
+
+#### Validate Residuals and Invertibility
+
+The Ljung-Box Q-test assesses the null hypothesis that a series of residuals exhibits no autocorrelation for a fixed number of lags L, against the alternative that some autocorrelation coefficient is nonzero.
+In this case failure to reject this test means the residuals are independent indicating the model is a good fit. Further, when plotting the inverse roots of each model, if the inverse root lies within the unit circle the model is invertible.
+
+**ARMA(2, 1)**
+  
+![](../figures/ARMA21/arma21_checkresiduals_plots.png){width=500px} 
+
+![](../figures/ARMA21/ljung_box_test_ARMA21.png){width=300px} ![](../figures/ARMA21/ARMA21_invert.png){width=300px}
+
+  - The ARMA(2,1) residuals are least significant of the models which implies the best fit. 
+  - Residuals have a mean centered around zero with a fairly normal distribution
+  - Ljung-Box test Q* p-value is greater than 0.05, so we reject the null hypothesis
+  - Plotted residuals are similar in shape to the plotted time series
+
+
+**MA(2)**
+  
+![](../figures/MA2/ma2_check_residuals_plots.png){width=500px} 
+  
+![](../figures/MA2/ma2_ljung_box_test.png){width=300px} ![](../figures/MA2/ma2_invert.png){width=300px}
+
+  - Residuals have a mean centered around zero with a fairly normal distribution
+  - Ljung-Box test Q* p-value is greater than 0.05, so we reject the null hypothesis
+  - Plotted residuals are similar in shape to the plotted time series
+  
+**AR(1)**
+  
+![](../figures/AR1/ar1_checkresiduals_plots.png){width=500px} 
+
+![](../figures/AR1/ljung_box_test_AR1.png){width=300px} ![](../figures/AR1/AR1_invert.png){width=250px}
+
+  - Residuals have a mean centered around zero with a fairly normal distribution
+  - Ljung-Box test Q* p-value is greater than 0.05, so we reject the null hypothesis
+  - Plotted residuals are similar in shape to the plotted time series
+  
+Based on our evaluation of the model validation tests above, all three models selected appear to be a good fit for this time series data.
+
+## Loss function:
+
+This research employs a symmetric loss function in creation of the models. Our perspective is that there is no clear definitive client for the data from the forecast and therefore we can not lean or shy from over or under forecasting. If this data is used by a group such as the U.N. to determine financial assistance eligibility for the state of Ireland we want to be careful not to over promise the growth of the countries economy. However, at the same time if we are using this data to provide to a group of investors who want to short an asset from Ireland (currency or tangible product) they would be looking for a decrease in the economy and therefore a potential drop off in an assets price that they could profit from via shorting. In this instance we do not want to under forecast the growth of the economy because it might incorrectly inform that investment decision. This same back and forth goes for groups that might be importing and exporting trade goods from and to the country. These companies are concerned about the prosperity of the GDP Per Capita in Ireland. We do not want to over promise growth in individual wealth (meaning more imports might be bought) or under promise growth and have the opportunity for scarcity (because a company figured there wouldn't be enough individual wealth growth to continue to buy imported goods at the current rate). With these examples in mind we employ a symmetric quadratic loss function which does not favor or shy away from either side of the forecasted extremes.
+
+## Optimal Forecasts
+
+We use an out of sample test to determine which of the MA(2), AR(1), and ARMA(2,1) models are optimal. To accomplish this test we split our data into a training and test sets. Our training set is constructed with data from our time series starting in Q1 of 1995 and ending in Q1 of 2016, inclusively. Then our test set consists of data from our time series spanning from Q2 of 2016 through Q1 of 2021, inclusively. The training set represents 80% of our data, leaving 20% of our data for the test set.
+
+### Out of Sample Evaluation:
+
+The forecasts are performed and their errors are compared in the table below.
+
+![](../figures/TestingModels/mae_results.png){width=300px} ![](../figures/TestingModels/test_all_mods.png){width=300px}
+
+![](../figures/TestingModels/chosen_actual_vs_predicted_test.png){width=500px}  
+
+Based on these results alone it appears as if the MA(2) model out performs the AR(1) and ARMA(2, 1) models. However, the MAE for MA(2) (0.0329325) is only a slight improvement from AR(1)’s MAE (0.0332547) and ARMA(2,1)’s MAE (0.0332758). Given the small difference between test MAE scores for these models we use a T-test to statistically validate how different the errors are if at all.
+
+### Statistical Evaluation of Optimal Forecasts
+
+MA(2) has lower MAE (0.032) than AR(1) (0.033) and ARMA(2,1) (0.033), but it need to be validated that these errors are statistically different. 
+
+![](../figures/TestingModels/ar1_ma2_ttest.png){width=300px} ![](../figures/TestingModels/arma21_ma2_ttest.png){width=300px}
+
+![](../figures/TestingModels/arma21_ar1_ttest.png){width=300px}
+
+The T-tests show the model MAE scores are not statistically different so our all three of our models are equally valid. 
+
+### Plot Optimal Forecasts
+
+![](../figures/TestingModels/ma2_test.png){width=300px}
+
+![](../figures/TestingModels/ar1_test.png){width=300px}
+
+![](../figures/TestingModels/arma21_test.png){width=300px}
+
+
+## Future Predictions:
+
+![](../figures/ResultsPLots/ma2_future_projection.png){width=300px}
+
+![](../figures/ResultsPLots/ar1_future_proejction.png){width=300px}
+
+![](../figures/ResultsPLots/arma21_future_proejction.png){width=300px} 
+
+For the MA(2), AR(1) and ARMA(2,1) the statistical tests and significance indicators portray them as well fitting models. The fit can be see in the above figures where all three models are fitted and forecasting into 2022. As demonstrated are all 3 very similar and have a good fit with the rest of the data. This indicates that the mean GDP Per Capita growth that Ireland has seen is forecasted to continue at the current rate.
+
+Through the process of train split testing, comparing the error, residuals, and view of the forecast when at the scale of growth rate, we have  three models that are equally sufficient. As can be seen above, this is our test train split comparison, with both forecasts looking very similar in how the test real data lines up with the 95% confidence intervals of the actual forecast of the train set.
+
+
+# Results and Conclusion:
+
+![](../figures/TestingModels/complete_process_optimal_forecasts.png){width=600px} 
+
+Based on the three models that we have selected as potential models the same conclusion is found. Ireland's above average GDP Per Capita growth is forecasted to continue at it's current mean rate into at least 2025. The implications of this are that the country will have strong standing as a good candidate for more imports, investment in domestic assets, distribute loans or other credit/financial products.
+
+
+## Future Work
+
+There is more work to be done. It is beneficial to determine causality as mentioned previously. Being able to determine if governmental policies internal to Ireland to the European Union are helping drive this growth. It is also beneficial to see if there are external pressures from policy changes in neighboring nations driving growth in Ireland. A look at how other similarly sized European nations are growing in terms of GDP Per Capita would help highlight if there is a fundamental shift within the European economy as a whole of if Ireland is a stand out with its strong growth trend. More insights would compliment this forecast well and give a more holistic understanding of the economic sitation in Ireland.
+
+## Group Member Contributions 
+
+Jennifer: Worked on building models, validation of models, out of sample evaluation, and created custom plots
+
+Sohrab: data description, literature review, non-graphical eda, graphical eda, plotting data
+
+Josh: T-testing, ADF testing, model selection, editing/formatting
+
+Jordan: Helped create the loss function content, worked on the simple models, initial log adjustment, and initial AIC comparison of complex models (before we made that section more indepth)
+
+## Resources 
+[1] S.Kuznets, National income and its composition: 1919-1938 Natl. Bur. Econ. Res. 1(1947) 3.
+
+[2] W.R. Dipietro, E. Anoruo, GDP per capita and its challengers as measures of happiness. Int.J.Soc.Econ. 33 (2006)698-709.
+https://www.researchgate.net/publication/23948971_GDP_per_capita_and_its_challengers_as_measures_of_happiness
+
+[3] I.B. Kravis , An approximation of the relative real per capita GDP of the People's Republic of China. Int.J.Comp.Econ 5 (1981)60-78.
+https://www.researchgate.net/publication/222460213_An_Approximation_of_the_Relative_Real_Per_Canita_GDP_of_The_People's_Republic_of_China
+
+[4] A.E. Tumer, A. Akkus, Forecasting Gross Domestic Product per Capita Using Artificial Neural Networks with Non-Economical Parameters.  J.Phy.Stat.Mec.App. 512 (2018)468-473.
+
+[5] “Irish GDP up by 26.3% in 2015?”, OECD, https://www.oecd.org/sdd/na/Irish-GDP-up-in-2015-OECD.pdf. 
+
+[6] Beard, Stephen. “For Ireland, Multinational Companies Are a Blessing and a Curse.” Marketplace, 20 June 2018, https://www.marketplace.org/2018/06/20/ireland-multinational-companies-blessing-and-curse/. 
+
+[7] S, Prabhat. “Difference between AIC and Bic.” Difference Between Similar Terms and Objects, 3 Oct. 2010, http://www.differencebetween.net/miscellaneous/difference-between-aic-and-bic/.

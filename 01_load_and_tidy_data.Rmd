@@ -1,0 +1,241 @@
+---
+title: 'Load and Tidy data'
+date: "Oct 30, 2021"
+output:
+  html_document:
+    toc: true
+    toc_depth: 6
+    toc_float: true
+    number_sections: true
+---
+
+```{r echo = FALSE}
+# Course: OMSBA 5305 
+# Purpose: Data tidying
+# Date: Oct 30, 2021
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE}
+# Clear environment of variables and functions
+rm(list = ls(all = TRUE)) 
+```
+
++ Load packages 
+```{r warning = FALSE, message = FALSE}
+# Load packages
+library(tidyverse) 
+library(vtable)
+library(readxl)     # to read excel file
+library(dynlm)      # to read linear model
+library(latticeExtra)
+library(scales)
+```
+
++ Load data
+```{r}
+oecd <- read_csv("../data/oecd.csv")
+head(oecd)
+```
+
++ Look at data
+```{r}
+vtable(oecd)
+```
+
+  - there are two different measurements: HCPCARSA and HVPVOBARSA
+  
+```{r}
+unique(oecd$MEASURE) 
+```
+
+Per the documentation for this data set - (https://stats.oecd.org/fileview2.aspx?IDFile=a7e60ef1-5139-4a2c-9331-cfd135033b8a)
+  - HCPCARSA: US dollars per head, at current prices and current PPPs, annual levels, s.a.
+  - HVPVOBARSA: US dollars per head, at 2015 price level and 2015 PPPs, annual levels, s.a.
+  
+I'm assuming we'll want HVPVOBARSA, but I will see if I can confirm that is the variable we want to use.
+
+ + Data tidying
+```{r}
+quarterly_oecd <- oecd %>% 
+  filter(FREQUENCY == "Q", MEASURE == "HVPVOBARSA") %>%
+  separate(Period, into = c("Quarter", "Year"), sep = "-") %>%
+  mutate(Quarter = factor(Quarter), Year = factor(Year)) %>%
+  select(Country, Quarter, Year, Unit, Value) 
+
+vtable(quarterly_oecd)
+```
+
+
+ + Find 5 countries with highest GDP in 2019
+```{r}
+quarterly_oecd %>% 
+  filter(Year == 2019) %>%
+  group_by(Country) %>%
+  summarize(avg_annual_gdp = (sum(Value)/4)) %>%
+  arrange(-avg_annual_gdp)
+```
+
+- top5: Luxembourg, Ireland, Switzerland, Norway, and United States
+
++ check data for top5 
+
+  - mainly I am looking to see what time periods each country has data for in this dataset
+  
+```{r}
+## Luxembourg
+Luxembourg_quarterly <- quarterly_oecd %>%
+  filter(Country == "Luxembourg") 
+
+Luxembourg_quarterly %>% group_by(Year) %>% count()
+```
+
+  - Luxembourg data starts in Q1 of 1995 through Q1 of 2021
+
+```{r}
+## Ireland
+Ireland_quarterly <- quarterly_oecd %>%
+  filter(Country == "Ireland") 
+
+Ireland_quarterly %>% group_by(Year) %>% count()
+```
+
+- Ireland data starts in Q1 of 1995 through Q2 of 2021
+
+```{r}
+## Switzerland
+Switzerland_quarterly <- quarterly_oecd %>%
+  filter(Country == "Switzerland") 
+
+Switzerland_quarterly %>% group_by(Year) %>% count()
+```
+
+  - Switzerland data starts in Q1 of 1991 through Q1 of 2021
+
+```{r}
+## Norway
+Norway_quarterly <- quarterly_oecd %>%
+  filter(Country == "Norway") 
+
+Norway_quarterly %>% group_by(Year) %>% count()
+```
+
+  - Norway data starts in Q1 of 1995 through Q2 of 2021
+
+```{r}
+US_quarterly <- quarterly_oecd %>%
+  filter(Country == "United States") 
+
+US_quarterly %>% group_by(Year) %>% count()
+```
+
+  - US data starts in Q1 of 1990 through Q3 of 2021
+
+```{r}
+top_5_1995_to_2020 <- quarterly_oecd %>%
+  filter(Country %in% c("Luxembourg", "Ireland", "Switzerland", "Norway", "United States"),
+         Year %in% c(1995:2020)) 
+
+q1_2021 <- quarterly_oecd %>%
+  filter(Country %in% c("Luxembourg", "Ireland", "Switzerland", "Norway", "United States"), 
+         Year == 2021, Quarter == "Q1")
+         
+df <- bind_rows(top_5_1995_to_2020, q1_2021)
+
+df <- df %>%
+  mutate(Country = factor(Country),
+         Unit = factor(Unit)) %>%
+  group_by(Country) %>%
+  arrange(Year)
+```
+
+```{r}
+vtable(df)
+```
+
+ - each country now has 105 observations
+
+## EDA
+### Non-Graphical EDA
+
+```{r}
+head(df)
+```
+
+
+```{r}
+# factor variables
+table(df$Value)
+table(df$Quarter)
+df %>% group_by(Country, Quarter) %>% summarise(sum(Value))
+```
+
+### Graphical EDA
+
+```{r, fig.width=12, fig.height = 10}
+df %>% ggplot(mapping = aes(x = Country, y = Value, color = Country)) +
+              geom_boxplot()+
+              labs(title = "Variations of GDP by Country",
+                   subtitle = "Luxembourg has the hieghst GDP",
+                   x = "Country", y = "Values by USD",
+                   caption = "Source : OECD.org", tag = "Figure 1") +
+             scale_y_continuous(labels = comma, breaks = seq(10000, 150000, 10000))
+```
+
+```{r}
+df %>% ggplot(mapping = aes(x = Year, y = Value, color = Country)) +
+              geom_point() + 
+              geom_smooth()
+```
+
+
+```{r}
+df %>% ggplot(mapping = aes(x = Year, y = Value, group = Country, color = Country)) +
+              geom_line() +
+              geom_point()
+```
+
+```{r, fig.width=12, fig.height = 8}
+df %>% group_by(Country, Year) %>% summarise(Value = mean(Value)) %>%
+       ggplot(mapping = aes(x = Year, y = Value, group = Country, color = Country)) +
+              geom_line() +
+              geom_point() +
+              labs(title = "Variations of GDP per Year by Country",
+                   subtitle = "Ireland has the most variation in GDP",
+                   x = "Years", y = "Values by USD",
+                   caption = "Source : OECD.org", tag = "Figure 2") +
+             scale_y_continuous(labels = comma, breaks = seq(10000, 150000, 10000))
+```
+
+```{r}
+
+df %>% ggplot(mapping = aes(x = Year, y = Value, color = Country)) +
+  geom_point() + 
+  geom_smooth()
+
+df %>% ggplot(mapping = aes(x = Year, y = Value, group = Country, color = Country)) +
+  geom_line() +
+  geom_point()
+
+
+top_5_full <- df %>% group_by(Country, Year) %>% summarise(Value = mean(Value)) %>%
+  ggplot(mapping = aes(x = Year, y = Value, group = Country, color = Country)) +
+  geom_line() +
+  geom_point() +
+  labs(title = "Variations of GDP per Year by Country",
+       subtitle = "Ireland has the most variation in GDP",
+       x = "Years", y = "Values by USD",
+       caption = "Source : OECD.org", tag = "Figure 2") +
+  scale_y_continuous(breaks = seq(10000, 150000, 10000))
+
+ggsave(filename = "top_5_full.png", plot = top_5_full)
+
+```
+
+# final data set
+
+```{r}
+df <-  df %>% 
+  filter(Country == 'Ireland')
+df1 <- ts(df$Value, frequency=4, start = 1995)
+```
+
